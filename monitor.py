@@ -2,17 +2,18 @@ from collections import Counter
 
 THRESHOLD = 5
 
-def detect_bruteforce(events,threshold=THRESHOLD):
+
+def detect_bruteforce(events, threshold=THRESHOLD):
+    """Return alert dicts for users/IPs with >= threshold failed logins."""
+    failed = [e for e in events if e.get("status") == "failed"]
+    by_user = Counter(e["user"] for e in failed)
+    by_ip = Counter(e["ip"] for e in failed if e["ip"] not in ("-", ""))
+
     alerts = []
-    by_user = Counter(event['user'] for event in events if event['status'] == 'failed')
-    by_ip = Counter(event['ip'] for event in events if event['status'] == 'failed')
-    
     for user, count in by_user.items():
         if count >= threshold:
-            alerts.append({'user': user, 'type': 'bruteforce_user'})
-
+            alerts.append({"type": "bruteforce_user", "user": user, "count": count})
     for ip, count in by_ip.items():
         if count >= threshold:
-            alerts.append({'ip': ip, 'type': 'bruteforce_ip'})
-
+            alerts.append({"type": "bruteforce_ip", "ip": ip, "count": count})
     return alerts
