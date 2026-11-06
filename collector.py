@@ -5,7 +5,7 @@ LOOKBACK_MINUTES = 60
 
 PS_COMMAND = (
     "Get-WinEvent -FilterHashtable @{{LogName='Security'; Id=4625; "
-    "StartTime=(Get-Date).AddMinutes(-{minutes})}} -ErrorAction SilentlyContinue | "
+    "StartTime=(Get-Date).AddMinutes(-{minutes})}} | "
     "Select-Object "
     "@{{n='time';e={{$_.TimeCreated.ToString('o')}}}}, "
     "@{{n='user';e={{$_.Properties[5].Value}}}}, "
@@ -21,7 +21,10 @@ def get_failed_logins(minutes=LOOKBACK_MINUTES):
         text=True,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"PowerShell error: {result.stderr.strip()}")
+        err = result.stderr.strip()
+        if "No events were found" in err:
+            return []  # nothing matched, which is a normal result
+        raise RuntimeError(f"PowerShell exited {result.returncode}: {err}")
 
     output = result.stdout.strip()
     if not output:
